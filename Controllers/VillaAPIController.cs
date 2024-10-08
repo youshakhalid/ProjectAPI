@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using ProjectAPI.Data;
 using ProjectAPI.Models;
@@ -83,7 +84,11 @@ namespace ProjectAPI.Controllers
             return NoContent();
 
         }
+
         [HttpPut("{id:int}", Name = "UpdateVilla")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult UpdateVilla(int id, [FromBody] VillaDTO villaDTO)
         {
             if (id == 0 || villaDTO.Id == id)
@@ -92,10 +97,38 @@ namespace ProjectAPI.Controllers
             }
             var villa = VillaStore.villaList.FirstOrDefault(u => u.Id == id);
 
+            if(villa == null)
+            {
+                return NotFound();
+            }
             villa.Name = villaDTO.Name;
             villa.Occupancys = villaDTO.Occupancys;
             villa.Sqft = villaDTO.Sqft;
 
+            return NoContent();
+        }
+
+        [HttpPatch("{id:int}", Name = "UpdatePartialVilla")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public IActionResult UpdatePartialVilla(int id, JsonPatchDocument<VillaDTO> document)
+        {
+            if (document == null || id == null)
+            {
+                return BadRequest();
+            }
+            var villa = VillaStore.villaList.FirstOrDefault(u => u.Id == id);
+
+            if (villa == null)
+            {
+                return NotFound();
+            }
+            document.ApplyTo(villa,ModelState);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
             return NoContent();
         }
 
